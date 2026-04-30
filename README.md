@@ -2,6 +2,8 @@
 
 This package adds a `zenmux` provider to pi using the extension API (`registerProvider`), as requested in [badlogic/pi-mono#1811](https://github.com/badlogic/pi-mono/issues/1811).
 
+Forked from [yangyang0507/pi-zenmux](https://github.com/yangyang0507/pi-zenmux).
+
 ## Features
 
 - Registers provider name: `zenmux`

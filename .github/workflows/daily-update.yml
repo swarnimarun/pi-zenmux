@@ -50,7 +50,22 @@ jobs:
       - name: Check for model changes
         id: diff
         run: |
-          if git diff --quiet -- zenmux-models.generated.js; then
+          normalize_generated_file() {
+            grep -v '^ \* Generated at: ' "$1"
+          }
+
+          current_file="$(mktemp)"
+          tracked_file="$(mktemp)"
+          trap 'rm -f "$current_file" "$tracked_file"' EXIT
+
+          normalize_generated_file zenmux-models.generated.js > "$current_file"
+          if git show HEAD:zenmux-models.generated.js >/dev/null 2>&1; then
+            git show HEAD:zenmux-models.generated.js | normalize_generated_file /dev/stdin > "$tracked_file"
+          else
+            : > "$tracked_file"
+          fi
+
+          if cmp -s "$current_file" "$tracked_file"; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
             echo "[ok] No model changes — nothing to open."
           else
@@ -66,7 +81,27 @@ jobs:
         if: steps.diff.outputs.changed == 'true'
         id: final_diff
         run: |
-          if git diff --quiet -- zenmux-models.generated.js package.json package-lock.json; then
+          normalize_generated_file() {
+            grep -v '^ \* Generated at: ' "$1"
+          }
+
+          current_file="$(mktemp)"
+          tracked_file="$(mktemp)"
+          trap 'rm -f "$current_file" "$tracked_file"' EXIT
+
+          normalize_generated_file zenmux-models.generated.js > "$current_file"
+          if git show HEAD:zenmux-models.generated.js >/dev/null 2>&1; then
+            git show HEAD:zenmux-models.generated.js | normalize_generated_file /dev/stdin > "$tracked_file"
+          else
+            : > "$tracked_file"
+          fi
+
+          generated_changed=false
+          if ! cmp -s "$current_file" "$tracked_file"; then
+            generated_changed=true
+          fi
+
+          if [ "$generated_changed" = false ] && git diff --quiet -- package.json package-lock.json; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
             echo "[ok] No final diff detected — skipping PR creation."
           else
