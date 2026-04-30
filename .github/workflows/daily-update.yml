@@ -1,0 +1,86 @@
+# ──────────────────────────────────────────────
+# Daily Model Update & Publish (CI)
+# ──────────────────────────────────────────────
+#
+# Triggers:
+#   - Schedule: 06:00 UTC every day
+#   - Manual:   workflow_dispatch (Actions tab → "Run workflow")
+#
+# Steps:
+#   1. Checkout repo, install deps (npm ci)
+#   2. Regenerate models (scripts/generate-models.mjs)
+#   3. If zenmux-models.generated.js changed:
+#        a. Bump patch version (npm version patch)
+#        b. Commit, tag, and push
+#        c. Publish to npm (npm publish)
+#   4. If no model changes → exit cleanly
+#
+# Required secrets:
+#   NPM_TOKEN  – npm automation token (create at npmjs.com →
+#                Access Tokens → Automation, then add to
+#                repo Settings → Secrets → Actions)
+#
+# Note: GITHUB_TOKEN is auto-available — no setup needed
+#       for pushing commits/tags.
+# ──────────────────────────────────────────────
+
+name: Daily Model Update
+
+on:
+  schedule:
+    - cron: '0 6 * * *'     # 06:00 UTC daily
+  workflow_dispatch:          # manual trigger
+
+jobs:
+  update-models:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
+
+      - run: npm ci
+
+      - name: Regenerate models
+        run: npm run generate:models
+
+      - name: Check for model changes
+        id: diff
+        run: |
+          if git diff --quiet -- zenmux-models.generated.js; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "[ok] No model changes — nothing to publish."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "[!] Model changes detected."
+          fi
+
+      - name: Bump version
+        if: steps.diff.outputs.changed == 'true'
+        run: npm version patch --no-git-tag-version
+
+      - name: Commit and push
+        if: steps.diff.outputs.changed == 'true'
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          VERSION=$(node -p "require('./package.json').version")
+
+          git add zenmux-models.generated.js package.json package-lock.json
+          git commit -m "chore: update models (v${VERSION}) [skip ci]"
+          git tag "v${VERSION}"
+          git push origin HEAD --tags
+
+      - name: Publish to npm
+        if: steps.diff.outputs.changed == 'true'
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
