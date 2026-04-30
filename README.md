@@ -13,16 +13,28 @@ This package adds a `zenmux` provider to pi using the extension API (`registerPr
 
 ## Install
 
-### Local path
+This project is not published on npm. Install it from a git checkout instead.
+
+### Clone and install
+
+```bash
+git clone https://github.com/swarnimarun/pi-zenmux.git
+cd pi-zenmux
+pi install "$(pwd)"
+```
+
+If you prefer to keep the checkout elsewhere, install it by absolute path:
 
 ```bash
 pi install /absolute/path/to/pi-zenmux
 ```
 
-### NPM
+To update later:
 
 ```bash
-pi install npm:pi-zenmux
+cd /absolute/path/to/pi-zenmux
+git pull
+pi install "$(pwd)"
 ```
 
 ## Configure
@@ -65,20 +77,9 @@ The extension derives:
 - OpenAI-compatible base: `${ZENMUX_BASE_URL}/api/v1`
 - Anthropic-compatible base: `${ZENMUX_BASE_URL}/api/anthropic`
 
-## Publish
-
-```bash
-npm run generate:models
-npm run check
-npm login
-npm publish --access public
-```
-
 ## Dev / Test
 
 ```bash
 npm install
-npm run generate:models
-npm run typecheck
-npm test
+npm run verify
 ```
