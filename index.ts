@@ -51,7 +51,7 @@ export function streamSimpleZenmux(model: Model<Api>, context: Context, options?
 export default function registerZenmuxProvider(pi: ExtensionAPI): void {
 	pi.registerProvider("zenmux", {
 		baseUrl: ZENMUX_OPENAI_BASE_URL,
-		apiKey: "ZENMUX_API_KEY",
+		apiKey: "$ZENMUX_API_KEY",
 		api: ZENMUX_ROUTER_API,
 		models: asZenmuxRouterModels(ZENMUX_MODELS_SNAPSHOT),
 		streamSimple: streamSimpleZenmux,
