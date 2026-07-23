@@ -8,7 +8,9 @@ Forked from [yangyang0507/pi-zenmux](https://github.com/yangyang0507/pi-zenmux).
 
 - Registers provider name: `zenmux`
 - Uses API key env var: `ZENMUX_API_KEY`
-- Uses bundled model snapshot (`zenmux-models.generated.js`) at runtime
+- Uses the bundled model snapshot immediately, then refreshes models from ZenMux at runtime
+- Shows the provider as `ZenMux` in Pi
+- Targets Pi 0.81.1 (`@earendil-works/*` packages)
 - Routes Anthropic models to `https://zenmux.ai/api/anthropic` with `anthropic-messages`
 - Routes non-Anthropic models to `https://zenmux.ai/api/v1` with `openai-completions`
 - Model `maxTokens` is merged from `https://models.dev/api.json` during generation
@@ -83,5 +85,16 @@ The extension derives:
 
 ```bash
 npm install
-npm run verify
+npm run check
+
+# Optional: refresh the checked-in offline snapshot
+npm run generate:models
 ```
+
+
+## Compatibility
+
+This extension supports Pi `0.81.1` only (the `>=0.81.1 <0.82.0` peer range). It
+uses Pi's provider `refreshModels` hook for the live catalog while retaining the
+generated snapshot as the startup/offline fallback. Set `ZENMUX_API_KEY` before
+launching Pi; no `/login` interaction is required.

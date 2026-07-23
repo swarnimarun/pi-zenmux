@@ -1,0 +1,19 @@
+name: Compatibility
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  pi-0-81-1:
+    name: Type-check and test against Pi 0.81.1
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
+      - run: npm install
+      - run: npm run check

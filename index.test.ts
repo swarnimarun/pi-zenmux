@@ -1,11 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import type { Api, Model } from "@mariozechner/pi-ai";
+import type { Api, Model } from "@earendil-works/pi-ai";
 import {
 	ZENMUX_ANTHROPIC_BASE_URL,
 	ZENMUX_MODELS_SNAPSHOT,
 	ZENMUX_OPENAI_BASE_URL,
 	ZENMUX_ROUTER_API,
+	refreshZenmuxModels,
 	asZenmuxRouterModels,
 	routeModel,
 } from "./index.js";
@@ -86,4 +87,34 @@ test("asZenmuxRouterModels forces all model APIs to zenmux-router", () => {
 	assert.equal(models.length, 2);
 	assert.equal(models[0]?.api, ZENMUX_ROUTER_API);
 	assert.equal(models[1]?.api, ZENMUX_ROUTER_API);
+});
+
+
+test("refreshZenmuxModels loads and routes the live catalog", async () => {
+	const models = await refreshZenmuxModels(async (url) => new Response(JSON.stringify(String(url).includes("models.dev") ? {
+		anthropic: { models: { "anthropic/claude-test": { limit: { output: 98765 } } } },
+	} : {
+		data: [{
+			id: "anthropic/claude-test",
+			display_name: "Claude Test",
+			owned_by: "anthropic",
+			input_modalities: ["text", "image"],
+			capabilities: { reasoning: true },
+			context_length: 200000,
+		}],
+	})));
+
+	assert.equal(models.length, 1);
+	assert.equal(models[0]?.api, ZENMUX_ROUTER_API);
+	assert.equal(models[0]?.maxTokens, 98765);
+});
+
+test("registerZenmuxProvider exposes a named provider with snapshot fallback and refresh", async () => {
+	const { default: registerZenmuxProvider } = await import("./index.js");
+	let registered: Record<string, unknown> | undefined;
+	registerZenmuxProvider({ registerProvider: (_name: string, config: Record<string, unknown>) => { registered = config; } } as never);
+	assert.equal(registered?.name, "ZenMux");
+	assert.equal(registered?.apiKey, "$ZENMUX_API_KEY");
+	assert.equal(typeof registered?.refreshModels, "function");
+	assert.deepEqual((registered?.models as Array<{ api: string }>).every((model) => model.api === ZENMUX_ROUTER_API), true);
 });

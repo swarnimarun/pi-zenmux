@@ -7,7 +7,7 @@
 #   - Manual:   workflow_dispatch (Actions tab → "Run workflow")
 #
 # Steps:
-#   1. Checkout repo, install deps (npm ci)
+#   1. Checkout repo, install dependencies (npm install)
 #   2. Regenerate models (scripts/generate-models.mjs)
 #   3. If zenmux-models.generated.js changed:
 #        a. Bump patch version (npm version patch)
@@ -42,7 +42,7 @@ jobs:
           node-version: '22'
           registry-url: 'https://registry.npmjs.org'
 
-      - run: npm ci
+      - run: npm install
 
       - name: Regenerate models
         run: npm run generate:models
