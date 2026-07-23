@@ -1,6 +1,6 @@
 {
   "name": "pi-zenmux",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "ZenMux provider extension for pi-mono",
   "type": "module",
   "main": "./index.ts",
