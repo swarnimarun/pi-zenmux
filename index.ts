@@ -1,6 +1,4 @@
-import type { Api, Context, Model, SimpleStreamOptions } from "@earendil-works/pi-ai";
-import { streamSimpleAnthropic } from "@earendil-works/pi-ai/anthropic";
-import { streamSimpleOpenAICompletions } from "@earendil-works/pi-ai/openai-completions";
+import { streamSimple, type Api, type Context, type Model, type SimpleStreamOptions } from "@earendil-works/pi-ai";
 import type { ExtensionAPI, ProviderConfig, ProviderModelConfig } from "@earendil-works/pi-coding-agent";
 import { parseModelsDevMaxTokens, parseZenmuxModels } from "./models.js";
 import { ZENMUX_MODELS } from "./zenmux-models.generated.js";
@@ -73,9 +71,7 @@ export async function refreshZenmuxModels(..._args: Parameters<NonNullable<Provi
 }
 
 export function streamSimpleZenmux(model: Model<Api>, context: Context, options?: SimpleStreamOptions) {
-	const routedModel = routeModel(model);
-	if (routedModel.api === "anthropic-messages") return streamSimpleAnthropic(routedModel as Model<"anthropic-messages">, context, options);
-	return streamSimpleOpenAICompletions(routedModel as Model<"openai-completions">, context, options);
+	return streamSimple(routeModel(model), context, options);
 }
 
 export default function registerZenmuxProvider(pi: ExtensionAPI): void {
