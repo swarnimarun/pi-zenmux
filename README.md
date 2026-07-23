@@ -8,7 +8,7 @@ Forked from [yangyang0507/pi-zenmux](https://github.com/yangyang0507/pi-zenmux).
 
 - Registers provider name: `zenmux`
 - Uses API key env var: `ZENMUX_API_KEY`
-- Uses the bundled model snapshot immediately, then refreshes models from ZenMux at runtime
+- Uses the bundled model snapshot immediately, then refreshes models from ZenMux at runtime with timeouts, retries, and a last-good-catalog fallback
 - Shows the provider as `ZenMux` in Pi
 - Targets Pi 0.81.1 (`@earendil-works/*` packages)
 - Routes Anthropic models to `https://zenmux.ai/api/anthropic` with `anthropic-messages`

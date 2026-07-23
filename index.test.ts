@@ -118,3 +118,19 @@ test("registerZenmuxProvider exposes a named provider with snapshot fallback and
 	assert.equal(typeof registered?.refreshModels, "function");
 	assert.deepEqual((registered?.models as Array<{ api: string }>).every((model) => model.api === ZENMUX_ROUTER_API), true);
 });
+
+test("refreshZenmuxModels retries transient catalog errors and retains its last good catalog", async () => {
+	let zenmuxCalls = 0;
+	const fetchCatalog = async (url: URL | RequestInfo) => {
+		if (String(url).includes("models.dev")) return new Response(JSON.stringify({}));
+		zenmuxCalls += 1;
+		if (zenmuxCalls === 1) throw new Error("temporary network failure");
+		return new Response(JSON.stringify({ data: [{ id: "openai/gpt-test", context_length: 1000 }] }));
+	};
+	const loaded = await refreshZenmuxModels(fetchCatalog);
+	assert.equal(zenmuxCalls, 2);
+	assert.equal(loaded[0]?.id, "openai/gpt-test");
+
+	const stale = await refreshZenmuxModels(async () => { throw new Error("offline"); });
+	assert.equal(stale, loaded);
+});

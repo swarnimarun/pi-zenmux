@@ -16,6 +16,8 @@ export const ZENMUX_ANTHROPIC_BASE_URL = `${ZENMUX_BASE_URL}/api/anthropic`;
 export const ZENMUX_MODELS_URL = `${ZENMUX_OPENAI_BASE_URL}/models`;
 export const MODELS_DEV_URL = "https://models.dev/api.json";
 export const MODEL_FETCH_TIMEOUT_MS = 10_000;
+export const MODEL_FETCH_RETRIES = 2;
+export const MODEL_FETCH_RETRY_DELAY_MS = 200;
 export const ZENMUX_ROUTER_API = "zenmux-router";
 export const ZENMUX_MODELS_SNAPSHOT: ProviderModelConfig[] = ZENMUX_MODELS;
 
@@ -31,28 +33,43 @@ export function asZenmuxRouterModels(models: ProviderModelConfig[]): ProviderMod
 	return models.map((model) => ({ ...model, api: ZENMUX_ROUTER_API }));
 }
 
-/** Fetches JSON with a bounded timeout so model discovery cannot stall Pi startup. */
+/** Fetches JSON with a bounded timeout and retries transient failures. */
 async function fetchJson(fetchImpl: typeof fetch, url: string): Promise<unknown> {
-	const controller = new AbortController();
-	const timeout = setTimeout(() => controller.abort(), MODEL_FETCH_TIMEOUT_MS);
-	try {
-		const response = await fetchImpl(url, { headers: { Accept: "application/json" }, signal: controller.signal });
-		if (!response.ok) throw new Error(`${url} -> HTTP ${response.status}`);
-		return response.json();
-	} finally {
-		clearTimeout(timeout);
+	let error: unknown;
+	for (let attempt = 0; attempt <= MODEL_FETCH_RETRIES; attempt += 1) {
+		const controller = new AbortController();
+		const timeout = setTimeout(() => controller.abort(), MODEL_FETCH_TIMEOUT_MS);
+		try {
+			const response = await fetchImpl(url, { headers: { Accept: "application/json" }, signal: controller.signal });
+			if (!response.ok) throw new Error(`${url} -> HTTP ${response.status}`);
+			return response.json();
+		} catch (caught) {
+			error = caught;
+			if (attempt < MODEL_FETCH_RETRIES) await new Promise((resolve) => setTimeout(resolve, MODEL_FETCH_RETRY_DELAY_MS));
+		} finally {
+			clearTimeout(timeout);
+		}
 	}
+	throw error;
 }
 
-/** Fetches the current ZenMux catalog. Pi retains the bundled snapshot if this fails. */
+let cachedLiveModels: ProviderModelConfig[] | undefined;
+
+/** Fetches the current ZenMux catalog, falling back to the last good live catalog on errors. */
 export async function refreshZenmuxModels(fetchImpl: typeof fetch = fetch): Promise<ProviderModelConfig[]> {
-	const [zenmuxPayload, modelsDevPayload] = await Promise.all([
-		fetchJson(fetchImpl, ZENMUX_MODELS_URL),
-		fetchJson(fetchImpl, MODELS_DEV_URL).catch(() => undefined),
-	]);
-	const models = parseZenmuxModels(zenmuxPayload, parseModelsDevMaxTokens(modelsDevPayload));
-	if (models.length === 0) throw new Error("ZenMux model list is empty or invalid");
-	return asZenmuxRouterModels(models);
+	try {
+		const [zenmuxPayload, modelsDevPayload] = await Promise.all([
+			fetchJson(fetchImpl, ZENMUX_MODELS_URL),
+			fetchJson(fetchImpl, MODELS_DEV_URL).catch(() => undefined),
+		]);
+		const models = asZenmuxRouterModels(parseZenmuxModels(zenmuxPayload, parseModelsDevMaxTokens(modelsDevPayload)));
+		if (models.length === 0) throw new Error("ZenMux model list is empty or invalid");
+		cachedLiveModels = models;
+		return models;
+	} catch (error) {
+		if (cachedLiveModels) return cachedLiveModels;
+		throw error;
+	}
 }
 
 export function streamSimpleZenmux(model: Model<Api>, context: Context, options?: SimpleStreamOptions) {
