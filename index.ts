@@ -1,12 +1,7 @@
-import {
-	type Api,
-	type Context,
-	type Model,
-	type SimpleStreamOptions,
-	streamSimpleAnthropic,
-	streamSimpleOpenAICompletions,
-} from "@earendil-works/pi-ai";
-import type { ExtensionAPI, ProviderModelConfig } from "@earendil-works/pi-coding-agent";
+import type { Api, Context, Model, SimpleStreamOptions } from "@earendil-works/pi-ai";
+import { streamSimpleAnthropic } from "@earendil-works/pi-ai/anthropic";
+import { streamSimpleOpenAICompletions } from "@earendil-works/pi-ai/openai-completions";
+import type { ExtensionAPI, ProviderConfig, ProviderModelConfig } from "@earendil-works/pi-coding-agent";
 import { parseModelsDevMaxTokens, parseZenmuxModels } from "./models.js";
 import { ZENMUX_MODELS } from "./zenmux-models.generated.js";
 
@@ -56,7 +51,7 @@ async function fetchJson(fetchImpl: typeof fetch, url: string): Promise<unknown>
 let cachedLiveModels: ProviderModelConfig[] | undefined;
 
 /** Fetches the current ZenMux catalog, falling back to the last good live catalog on errors. */
-export async function refreshZenmuxModels(fetchImpl: typeof fetch = fetch): Promise<ProviderModelConfig[]> {
+export async function loadZenmuxModels(fetchImpl: typeof fetch = fetch): Promise<ProviderModelConfig[]> {
 	try {
 		const [zenmuxPayload, modelsDevPayload] = await Promise.all([
 			fetchJson(fetchImpl, ZENMUX_MODELS_URL),
@@ -70,6 +65,11 @@ export async function refreshZenmuxModels(fetchImpl: typeof fetch = fetch): Prom
 		if (cachedLiveModels) return cachedLiveModels;
 		throw error;
 	}
+}
+
+/** Pi refresh hook. The global fetch avoids coupling the public model endpoint to credentials. */
+export async function refreshZenmuxModels(..._args: Parameters<NonNullable<ProviderConfig["refreshModels"]>>): Promise<ProviderModelConfig[]> {
+	return loadZenmuxModels();
 }
 
 export function streamSimpleZenmux(model: Model<Api>, context: Context, options?: SimpleStreamOptions) {

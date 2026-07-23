@@ -6,7 +6,7 @@ import {
 	ZENMUX_MODELS_SNAPSHOT,
 	ZENMUX_OPENAI_BASE_URL,
 	ZENMUX_ROUTER_API,
-	refreshZenmuxModels,
+	loadZenmuxModels,
 	asZenmuxRouterModels,
 	routeModel,
 } from "./index.js";
@@ -90,8 +90,8 @@ test("asZenmuxRouterModels forces all model APIs to zenmux-router", () => {
 });
 
 
-test("refreshZenmuxModels loads and routes the live catalog", async () => {
-	const models = await refreshZenmuxModels(async (url) => new Response(JSON.stringify(String(url).includes("models.dev") ? {
+test("loadZenmuxModels loads and routes the live catalog", async () => {
+	const models = await loadZenmuxModels(async (url) => new Response(JSON.stringify(String(url).includes("models.dev") ? {
 		anthropic: { models: { "anthropic/claude-test": { limit: { output: 98765 } } } },
 	} : {
 		data: [{
@@ -119,7 +119,7 @@ test("registerZenmuxProvider exposes a named provider with snapshot fallback and
 	assert.deepEqual((registered?.models as Array<{ api: string }>).every((model) => model.api === ZENMUX_ROUTER_API), true);
 });
 
-test("refreshZenmuxModels retries transient catalog errors and retains its last good catalog", async () => {
+test("loadZenmuxModels retries transient catalog errors and retains its last good catalog", async () => {
 	let zenmuxCalls = 0;
 	const fetchCatalog = async (url: URL | RequestInfo) => {
 		if (String(url).includes("models.dev")) return new Response(JSON.stringify({}));
@@ -127,10 +127,10 @@ test("refreshZenmuxModels retries transient catalog errors and retains its last 
 		if (zenmuxCalls === 1) throw new Error("temporary network failure");
 		return new Response(JSON.stringify({ data: [{ id: "openai/gpt-test", context_length: 1000 }] }));
 	};
-	const loaded = await refreshZenmuxModels(fetchCatalog);
+	const loaded = await loadZenmuxModels(fetchCatalog);
 	assert.equal(zenmuxCalls, 2);
 	assert.equal(loaded[0]?.id, "openai/gpt-test");
 
-	const stale = await refreshZenmuxModels(async () => { throw new Error("offline"); });
+	const stale = await loadZenmuxModels(async () => { throw new Error("offline"); });
 	assert.equal(stale, loaded);
 });
