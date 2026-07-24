@@ -1,4 +1,4 @@
-import { streamSimple, type Api, type Context, type Model, type SimpleStreamOptions } from "@earendil-works/pi-ai";
+import { stream, type Api, type Context, type Model, type SimpleStreamOptions, type ProviderStreamOptions } from "@earendil-works/pi-ai";
 import type { ExtensionAPI, ProviderConfig, ProviderModelConfig } from "@earendil-works/pi-coding-agent";
 import { parseModelsDevMaxTokens, parseZenmuxModels } from "./models.js";
 import { ZENMUX_MODELS } from "./zenmux-models.generated.js";
@@ -71,7 +71,7 @@ export async function refreshZenmuxModels(..._args: Parameters<NonNullable<Provi
 }
 
 export function streamSimpleZenmux(model: Model<Api>, context: Context, options?: SimpleStreamOptions) {
-	return streamSimple(routeModel(model), context, options);
+	return stream(routeModel(model), context, options as ProviderStreamOptions | undefined);
 }
 
 export default function registerZenmuxProvider(pi: ExtensionAPI): void {
