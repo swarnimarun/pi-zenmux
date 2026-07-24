@@ -1,6 +1,6 @@
 {
   "name": "pi-zenmux",
-  "version": "0.1.8",
+  "version": "0.2.0",
   "description": "ZenMux provider extension for pi-mono",
   "type": "module",
   "main": "./index.ts",
@@ -26,6 +26,7 @@
   ],
   "files": [
     "index.ts",
+    "models.ts",
     "zenmux-models.generated.d.ts",
     "zenmux-models.generated.js",
     "README.md"
@@ -45,12 +46,12 @@
     ]
   },
   "peerDependencies": {
-    "@mariozechner/pi-ai": "*",
-    "@mariozechner/pi-coding-agent": "*"
+    "@earendil-works/pi-ai": ">=0.81.1 <0.82.0",
+    "@earendil-works/pi-coding-agent": ">=0.81.1 <0.82.0"
   },
   "devDependencies": {
-    "@mariozechner/pi-ai": "*",
-    "@mariozechner/pi-coding-agent": "*",
+    "@earendil-works/pi-ai": "0.81.1",
+    "@earendil-works/pi-coding-agent": "0.81.1",
     "@types/node": "^22.15.21",
     "typescript": "^5.8.3"
   }

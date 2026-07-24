@@ -20,6 +20,7 @@
   },
   "include": [
     "index.ts",
+    "models.ts",
     "index.test.ts"
   ],
   "exclude": [
