@@ -1,12 +1,4 @@
-import {
- 	type Api,
- 	type Context,
- 	type Model,
- 	type SimpleStreamOptions,
- 	streamSimpleAnthropic,
- 	streamSimpleOpenAICompletions,
-} from "@earendil-works/pi-ai";
-import type { ExtensionAPI, ProviderModelConfig } from "@earendil-works/pi-coding-agent";
+import type { ExtensionAPI, ProviderConfig, ProviderModelConfig } from "@earendil-works/pi-coding-agent";
 import { parseModelsDevMaxTokens, parseZenmuxModels } from "./models.js";
 
 export const ZENMUX_BASE_URL = (process.env.ZENMUX_BASE_URL || "https://zenmux.ai").replace(/\/$/, "");
@@ -17,7 +9,8 @@ export const MODELS_DEV_URL = "https://models.dev/api.json";
 export const MODEL_FETCH_TIMEOUT_MS = 10_000;
 export const MODEL_FETCH_RETRIES = 2;
 export const MODEL_FETCH_RETRY_DELAY_MS = 200;
-export const ZENMUX_ROUTER_API = "zenmux-router";
+export const ZENMUX_ANTHROPIC_API = "anthropic-messages";
+export const ZENMUX_OPENAI_API = "openai-completions";
 
 export const ZENMUX_MODELS_SNAPSHOT: ProviderModelConfig[] = await fetch(`${ZENMUX_OPENAI_BASE_URL}/models`)
 	.then((response) => {
@@ -35,8 +28,17 @@ export const ZENMUX_MODELS_SNAPSHOT: ProviderModelConfig[] = await fetch(`${ZENM
 		maxTokens: Number(model.max_output_tokens) > 0 ? Math.floor(Number(model.max_output_tokens)) : 32768,
 	} as ProviderModelConfig)));
 
+/** Routes each ZenMux model to its real built-in-compatible endpoint.
+ * Anthropic models hit the Anthropic-compatible endpoint; OpenAI models keep the
+ * provider's OpenAI-compatible base URL. Using the built-in `anthropic-messages`
+ * and `openai-completions` APIs lets pi's own streamers handle routing, so no
+ * custom `streamSimple` is required. */
 export function asZenmuxRouterModels(models: ProviderModelConfig[]): ProviderModelConfig[] {
-	return models.map((model) => ({ ...model, api: ZENMUX_ROUTER_API }));
+	return models.map((model) =>
+		model.api === ZENMUX_ANTHROPIC_API
+			? { ...model, baseUrl: ZENMUX_ANTHROPIC_BASE_URL }
+			: model,
+	);
 }
 
 /** Fetches JSON with a bounded timeout and retries transient failures. */
@@ -88,7 +90,9 @@ export default function registerZenmuxProvider(pi: ExtensionAPI): void {
 		name: "ZenMux",
 		baseUrl: ZENMUX_OPENAI_BASE_URL,
 		apiKey: "$ZENMUX_API_KEY",
-		api: ZENMUX_ROUTER_API,
+		// Default API for the OpenAI-compatible endpoint; Anthropic models override
+		// both `api` and `baseUrl` per model via asZenmuxRouterModels().
+		api: ZENMUX_OPENAI_API,
 		models: asZenmuxRouterModels(ZENMUX_MODELS_SNAPSHOT),
 		refreshModels: refreshZenmuxModels,
 	});

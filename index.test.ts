@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+	ZENMUX_ANTHROPIC_BASE_URL,
 	ZENMUX_MODELS_SNAPSHOT,
-	ZENMUX_ROUTER_API,
 	loadZenmuxModels,
 	asZenmuxRouterModels,
 } from "./index.js";
@@ -19,7 +19,7 @@ test("bundled model snapshot exists and has maxTokens", () => {
 	}
 });
 
-test("asZenmuxRouterModels maps all models to ZenMux's OpenAI-compatible API", () => {
+test("asZenmuxRouterModels routes models to ZenMux's built-in-compatible endpoints", () => {
 	const models = asZenmuxRouterModels([
 		{
 			id: "anthropic/claude-opus-4.6",
@@ -44,8 +44,12 @@ test("asZenmuxRouterModels maps all models to ZenMux's OpenAI-compatible API", (
 	]);
 
 	assert.equal(models.length, 2);
-	assert.equal(models[0]?.api, ZENMUX_ROUTER_API);
-	assert.equal(models[1]?.api, ZENMUX_ROUTER_API);
+	// Anthropic models keep their API and get the Anthropic-compatible endpoint.
+	assert.equal(models[0]?.api, "anthropic-messages");
+	assert.equal(models[0]?.baseUrl, ZENMUX_ANTHROPIC_BASE_URL);
+	// OpenAI-compatible models keep their API and inherit the provider base URL.
+	assert.equal(models[1]?.api, "openai-completions");
+	assert.equal(models[1]?.baseUrl, undefined);
 });
 
 
@@ -64,7 +68,8 @@ test("loadZenmuxModels loads and routes the live catalog", async () => {
 	})));
 
 	assert.equal(models.length, 1);
-	assert.equal(models[0]?.api, ZENMUX_ROUTER_API);
+	assert.equal(models[0]?.api, "anthropic-messages");
+	assert.equal(models[0]?.baseUrl, ZENMUX_ANTHROPIC_BASE_URL);
 	assert.equal(models[0]?.maxTokens, 98765);
 });
 
@@ -76,7 +81,11 @@ test("registerZenmuxProvider exposes a named provider with snapshot fallback and
 	assert.equal(registered?.apiKey, "$ZENMUX_API_KEY");
 	assert.equal(typeof registered?.refreshModels, "function");
 	assert.equal(registered?.streamSimple, undefined);
-	assert.deepEqual((registered?.models as Array<{ api: string }>).every((model) => model.api === ZENMUX_ROUTER_API), true);
+	assert.equal(registered?.api, "openai-completions");
+	// Every model uses a built-in-compatible API so pi's own streamers handle it.
+	assert.deepEqual((registered?.models as Array<{ api: string }>).every((model) => model.api === "anthropic-messages" || model.api === "openai-completions"), true);
+	// Anthropic-model override the endpoint URL so they hit the Anthropic API.
+	assert.deepEqual((registered?.models as Array<{ api: string; baseUrl?: string }>).filter((model) => model.api === "anthropic-messages").every((model) => model.baseUrl === ZENMUX_ANTHROPIC_BASE_URL), true);
 });
 
 test("loadZenmuxModels retries transient catalog errors and retains its last good catalog", async () => {
