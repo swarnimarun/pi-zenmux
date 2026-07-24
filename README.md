@@ -13,6 +13,11 @@ Forked from [yangyang0507/pi-zenmux](https://github.com/yangyang0507/pi-zenmux).
 - Targets Pi 0.81.1 (`@earendil-works/*` packages)
 - Uses ZenMux's OpenAI-compatible endpoint (`https://zenmux.ai/api/v1`) for all models, including Anthropic model IDs
 - Model `maxTokens` is merged from `https://models.dev/api.json` during generation
+-- Uses bundled model snapshot (`zenmux-models.generated.js`) at runtime
++- Fetches the current model catalog from ZenMux at startup
+ - Routes Anthropic models to `https://zenmux.ai/api/anthropic` with `anthropic-messages`
+ - Routes non-Anthropic models to `https://zenmux.ai/api/v1` with `openai-completions`
+-- Model `maxTokens` is merged from `https://models.dev/api.json` during generation
 
 ## Install
 

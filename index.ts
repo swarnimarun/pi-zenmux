@@ -1,17 +1,34 @@
-import type { Api, Model } from "@earendil-works/pi-ai";
-import type { ExtensionAPI, ProviderConfig, ProviderModelConfig } from "@earendil-works/pi-coding-agent";
+import {
+ 	type Api,
+ 	type Context,
+ 	type Model,
+ 	type SimpleStreamOptions,
+ 	streamSimpleAnthropic,
+ 	streamSimpleOpenAICompletions,
+} from "@earendil-works/pi-ai";
+import type { ExtensionAPI, ProviderModelConfig } from "@earendil-works/pi-coding-agent";
 import { parseModelsDevMaxTokens, parseZenmuxModels } from "./models.js";
-import { ZENMUX_MODELS } from "./zenmux-models.generated.js";
 
 export const ZENMUX_BASE_URL = (process.env.ZENMUX_BASE_URL || "https://zenmux.ai").replace(/\/$/, "");
 export const ZENMUX_OPENAI_BASE_URL = `${ZENMUX_BASE_URL}/api/v1`;
-export const ZENMUX_MODELS_URL = `${ZENMUX_OPENAI_BASE_URL}/models`;
-export const MODELS_DEV_URL = "https://models.dev/api.json";
-export const MODEL_FETCH_TIMEOUT_MS = 10_000;
-export const MODEL_FETCH_RETRIES = 2;
-export const MODEL_FETCH_RETRY_DELAY_MS = 200;
-export const ZENMUX_ROUTER_API = "openai-completions"; // ZenMux exposes all models through this compatible API.
-export const ZENMUX_MODELS_SNAPSHOT: ProviderModelConfig[] = ZENMUX_MODELS;
+export const ZENMUX_ANTHROPIC_BASE_URL = `${ZENMUX_BASE_URL}/api/anthropic`;
+export const ZENMUX_ROUTER_API = "zenmux-router";
+
+export const ZENMUX_MODELS_SNAPSHOT: ProviderModelConfig[] = await fetch(`${ZENMUX_OPENAI_BASE_URL}/models`)
+	.then((response) => {
+		if (!response.ok) throw new Error(`ZenMux model list failed: HTTP ${response.status}`);
+		return response.json() as Promise<{ data?: Array<Record<string, any>> }>;
+	})
+	.then(({ data = [] }) => data.filter((model) => model.id).map((model) => ({
+		id: String(model.id),
+		name: String(model.display_name || model.id),
+		api: model.id.startsWith("anthropic/") || model.owned_by === "anthropic" ? "anthropic-messages" : "openai-completions",
+		reasoning: Boolean(model.capabilities?.reasoning),
+		input: Array.isArray(model.input_modalities) && model.input_modalities.includes("image") ? ["text", "image"] : ["text"],
+		cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+		contextWindow: Number(model.context_length) > 0 ? Math.floor(Number(model.context_length)) : 128000,
+		maxTokens: Number(model.max_output_tokens) > 0 ? Math.floor(Number(model.max_output_tokens)) : 32768,
+	} as ProviderModelConfig)));
 
 export function asZenmuxRouterModels(models: ProviderModelConfig[]): ProviderModelConfig[] {
 	return models.map((model) => ({ ...model, api: ZENMUX_ROUTER_API }));
