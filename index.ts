@@ -12,6 +12,11 @@ import { parseModelsDevMaxTokens, parseZenmuxModels } from "./models.js";
 export const ZENMUX_BASE_URL = (process.env.ZENMUX_BASE_URL || "https://zenmux.ai").replace(/\/$/, "");
 export const ZENMUX_OPENAI_BASE_URL = `${ZENMUX_BASE_URL}/api/v1`;
 export const ZENMUX_ANTHROPIC_BASE_URL = `${ZENMUX_BASE_URL}/api/anthropic`;
+export const ZENMUX_MODELS_URL = `${ZENMUX_OPENAI_BASE_URL}/models`;
+export const MODELS_DEV_URL = "https://models.dev/api.json";
+export const MODEL_FETCH_TIMEOUT_MS = 10_000;
+export const MODEL_FETCH_RETRIES = 2;
+export const MODEL_FETCH_RETRY_DELAY_MS = 200;
 export const ZENMUX_ROUTER_API = "zenmux-router";
 
 export const ZENMUX_MODELS_SNAPSHOT: ProviderModelConfig[] = await fetch(`${ZENMUX_OPENAI_BASE_URL}/models`)
