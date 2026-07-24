@@ -1,31 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import type { Api, Model } from "@earendil-works/pi-ai";
 import {
-	ZENMUX_ANTHROPIC_BASE_URL,
 	ZENMUX_MODELS_SNAPSHOT,
-	ZENMUX_OPENAI_BASE_URL,
 	ZENMUX_ROUTER_API,
 	loadZenmuxModels,
 	asZenmuxRouterModels,
-	routeModel,
 } from "./index.js";
 
-function makeModel(overrides: Partial<Model<Api>> = {}): Model<Api> {
-	return {
-		id: "openai/gpt-5.3-chat",
-		name: "OpenAI: GPT-5.3 Chat",
-		api: ZENMUX_ROUTER_API,
-		provider: "zenmux",
-		baseUrl: ZENMUX_OPENAI_BASE_URL,
-		reasoning: true,
-		input: ["text", "image"],
-		cost: { input: 1, output: 1, cacheRead: 0, cacheWrite: 0 },
-		contextWindow: 128000,
-		maxTokens: 32768,
-		...overrides,
-	};
-}
 
 test("bundled model snapshot exists and has maxTokens", () => {
 	assert.ok(ZENMUX_MODELS_SNAPSHOT.length > 0);
@@ -38,29 +19,7 @@ test("bundled model snapshot exists and has maxTokens", () => {
 	}
 });
 
-test("routeModel routes anthropic ids to anthropic endpoint", () => {
-	const routed = routeModel(
-		makeModel({
-			id: "anthropic/claude-sonnet-4.6",
-		}),
-	);
-
-	assert.equal(routed.api, "anthropic-messages");
-	assert.equal(routed.baseUrl, ZENMUX_ANTHROPIC_BASE_URL);
-});
-
-test("routeModel routes non-anthropic ids to openai endpoint", () => {
-	const routed = routeModel(
-		makeModel({
-			id: "openai/gpt-5.3-codex",
-		}),
-	);
-
-	assert.equal(routed.api, "openai-completions");
-	assert.equal(routed.baseUrl, ZENMUX_OPENAI_BASE_URL);
-});
-
-test("asZenmuxRouterModels forces all model APIs to zenmux-router", () => {
+test("asZenmuxRouterModels maps all models to ZenMux's OpenAI-compatible API", () => {
 	const models = asZenmuxRouterModels([
 		{
 			id: "anthropic/claude-opus-4.6",
@@ -116,6 +75,7 @@ test("registerZenmuxProvider exposes a named provider with snapshot fallback and
 	assert.equal(registered?.name, "ZenMux");
 	assert.equal(registered?.apiKey, "$ZENMUX_API_KEY");
 	assert.equal(typeof registered?.refreshModels, "function");
+	assert.equal(registered?.streamSimple, undefined);
 	assert.deepEqual((registered?.models as Array<{ api: string }>).every((model) => model.api === ZENMUX_ROUTER_API), true);
 });
 

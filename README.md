@@ -11,8 +11,7 @@ Forked from [yangyang0507/pi-zenmux](https://github.com/yangyang0507/pi-zenmux).
 - Uses the bundled model snapshot immediately, then refreshes models from ZenMux at runtime with timeouts, retries, and a last-good-catalog fallback
 - Shows the provider as `ZenMux` in Pi
 - Targets Pi 0.81.1 (`@earendil-works/*` packages)
-- Routes Anthropic models to `https://zenmux.ai/api/anthropic` with `anthropic-messages`
-- Routes non-Anthropic models to `https://zenmux.ai/api/v1` with `openai-completions`
+- Uses ZenMux's OpenAI-compatible endpoint (`https://zenmux.ai/api/v1`) for all models, including Anthropic model IDs
 - Model `maxTokens` is merged from `https://models.dev/api.json` during generation
 
 ## Install
@@ -79,7 +78,6 @@ export ZENMUX_BASE_URL="https://zenmux.ai"
 The extension derives:
 
 - OpenAI-compatible base: `${ZENMUX_BASE_URL}/api/v1`
-- Anthropic-compatible base: `${ZENMUX_BASE_URL}/api/anthropic`
 
 ## Dev / Test
 

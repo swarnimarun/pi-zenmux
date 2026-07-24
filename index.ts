@@ -1,26 +1,17 @@
-import { stream, type Api, type Context, type Model, type SimpleStreamOptions, type ProviderStreamOptions } from "@earendil-works/pi-ai";
+import type { Api, Model } from "@earendil-works/pi-ai";
 import type { ExtensionAPI, ProviderConfig, ProviderModelConfig } from "@earendil-works/pi-coding-agent";
 import { parseModelsDevMaxTokens, parseZenmuxModels } from "./models.js";
 import { ZENMUX_MODELS } from "./zenmux-models.generated.js";
 
 export const ZENMUX_BASE_URL = (process.env.ZENMUX_BASE_URL || "https://zenmux.ai").replace(/\/$/, "");
 export const ZENMUX_OPENAI_BASE_URL = `${ZENMUX_BASE_URL}/api/v1`;
-export const ZENMUX_ANTHROPIC_BASE_URL = `${ZENMUX_BASE_URL}/api/anthropic`;
 export const ZENMUX_MODELS_URL = `${ZENMUX_OPENAI_BASE_URL}/models`;
 export const MODELS_DEV_URL = "https://models.dev/api.json";
 export const MODEL_FETCH_TIMEOUT_MS = 10_000;
 export const MODEL_FETCH_RETRIES = 2;
 export const MODEL_FETCH_RETRY_DELAY_MS = 200;
-export const ZENMUX_ROUTER_API = "zenmux-router";
+export const ZENMUX_ROUTER_API = "openai-completions"; // ZenMux exposes all models through this compatible API.
 export const ZENMUX_MODELS_SNAPSHOT: ProviderModelConfig[] = ZENMUX_MODELS;
-
-export function routeModel(model: Model<Api>): Model<Api> {
-	if (model.id.startsWith("anthropic/")) {
-		const { compat: _compat, ...rest } = model as Model<Api> & { compat?: unknown };
-		return { ...rest, api: "anthropic-messages", baseUrl: ZENMUX_ANTHROPIC_BASE_URL };
-	}
-	return { ...model, api: "openai-completions", baseUrl: ZENMUX_OPENAI_BASE_URL };
-}
 
 export function asZenmuxRouterModels(models: ProviderModelConfig[]): ProviderModelConfig[] {
 	return models.map((model) => ({ ...model, api: ZENMUX_ROUTER_API }));
@@ -70,10 +61,6 @@ export async function refreshZenmuxModels(..._args: Parameters<NonNullable<Provi
 	return loadZenmuxModels();
 }
 
-export function streamSimpleZenmux(model: Model<Api>, context: Context, options?: SimpleStreamOptions) {
-	return stream(routeModel(model), context, options as ProviderStreamOptions | undefined);
-}
-
 export default function registerZenmuxProvider(pi: ExtensionAPI): void {
 	pi.registerProvider("zenmux", {
 		name: "ZenMux",
@@ -81,7 +68,6 @@ export default function registerZenmuxProvider(pi: ExtensionAPI): void {
 		apiKey: "$ZENMUX_API_KEY",
 		api: ZENMUX_ROUTER_API,
 		models: asZenmuxRouterModels(ZENMUX_MODELS_SNAPSHOT),
-		streamSimple: streamSimpleZenmux,
 		refreshModels: refreshZenmuxModels,
 	});
 }
