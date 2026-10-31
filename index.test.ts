@@ -1,14 +1,36 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import {
+// The extension fetches its initial catalog during module evaluation. Stub that
+// request before importing it so the test suite never depends on live services.
+const originalFetch = globalThis.fetch;
+let startupRequests = 0;
+const startupCatalog = {
+	data: [{ id: "anthropic/claude-test", display_name: "Claude Test", context_length: 200000, max_output_tokens: 8192 }],
+};
+globalThis.fetch = async (url) => {
+	assert.ok(String(url).endsWith("/api/v1/models"));
+	startupRequests += 1;
+	return new Response(JSON.stringify(startupCatalog));
+};
+const extension = await (async () => {
+	try {
+		return await import("./index.js");
+	} finally {
+		globalThis.fetch = originalFetch;
+	}
+})();
+const {
 	ZENMUX_ANTHROPIC_BASE_URL,
 	ZENMUX_MODELS_SNAPSHOT,
 	loadZenmuxModels,
 	asZenmuxRouterModels,
-} from "./index.js";
+} = extension;
 
 
-test("bundled model snapshot exists and has maxTokens", () => {
+test("startup catalog is fetched once and has maxTokens", () => {
+	assert.equal(startupRequests, 1);
+	assert.equal(ZENMUX_MODELS_SNAPSHOT[0]?.id, "anthropic/claude-test");
+	assert.equal(ZENMUX_MODELS_SNAPSHOT[0]?.maxTokens, 8192);
 	assert.ok(ZENMUX_MODELS_SNAPSHOT.length > 0);
 
 	for (const model of ZENMUX_MODELS_SNAPSHOT) {
@@ -73,7 +95,7 @@ test("loadZenmuxModels loads and routes the live catalog", async () => {
 	assert.equal(models[0]?.maxTokens, 98765);
 });
 
-test("registerZenmuxProvider exposes a named provider with snapshot fallback and refresh", async () => {
+test("registerZenmuxProvider exposes a named provider with initial catalog and refresh", async () => {
 	const { default: registerZenmuxProvider } = await import("./index.js");
 	let registered: Record<string, unknown> | undefined;
 	registerZenmuxProvider({ registerProvider: (_name: string, config: Record<string, unknown>) => { registered = config; } } as never);

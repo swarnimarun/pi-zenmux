@@ -8,11 +8,11 @@ Forked from [yangyang0507/pi-zenmux](https://github.com/yangyang0507/pi-zenmux).
 
 - Registers provider name: `zenmux`
 - Uses API key env var: `ZENMUX_API_KEY`
-- Fetches the current model catalog from ZenMux at startup and refreshes it at runtime with timeouts, retries, and a last-good-catalog fallback
+- Fetches the current model catalog from ZenMux at startup; runtime refreshes use timeouts, retries, and a last-good-refresh-catalog fallback
 - Shows the provider as `ZenMux` in Pi
 - Targets Pi 0.81.1 (`@earendil-works/*` packages)
-- Uses ZenMux's OpenAI-compatible endpoint (`https://zenmux.ai/api/v1`) for all models, including Anthropic model IDs
-- Model `maxTokens` is merged from `https://models.dev/api.json`
+- Routes Anthropic models through ZenMux's Anthropic-compatible endpoint (`https://zenmux.ai/api/anthropic`) and other models through its OpenAI-compatible endpoint (`https://zenmux.ai/api/v1`)
+- Runtime refreshes merge model `maxTokens` from `https://models.dev/api.json`
 
 ## Install
 
@@ -78,15 +78,24 @@ export ZENMUX_BASE_URL="https://zenmux.ai"
 The extension derives:
 
 - OpenAI-compatible base: `${ZENMUX_BASE_URL}/api/v1`
+- Anthropic-compatible base: `${ZENMUX_BASE_URL}/api/anthropic`
 
 ## Dev / Test
 
 ```bash
 npm install
 npm run check
-
 ```
 
+Tests use mocked catalog responses and do not require a ZenMux API key or live
+provider access.
+
+## Catalog availability
+
+Startup currently requires access to the public ZenMux model endpoint; the initial
+fetch is not timeout-bounded and there is no bundled offline catalog. Runtime
+refreshes are bounded and retain the last successful refresh in memory when later
+requests fail.
 
 ## Compatibility
 

@@ -3,17 +3,17 @@
   "version": "0.2.0",
   "description": "ZenMux provider extension for pi-mono",
   "type": "module",
-    "main": "./index.ts",
+  "main": "./index.ts",
   "license": "MIT",
   "author": "yangyang0507",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/yangyang0507/pi-zenmux.git"
+    "url": "git+https://github.com/swarnimarun/pi-zenmux.git"
   },
   "bugs": {
-    "url": "https://github.com/yangyang0507/pi-zenmux/issues"
+    "url": "https://github.com/swarnimarun/pi-zenmux/issues"
   },
-  "homepage": "https://github.com/yangyang0507/pi-zenmux#readme",
+  "homepage": "https://github.com/swarnimarun/pi-zenmux#readme",
   "keywords": [
     "pi",
     "pi-package",
